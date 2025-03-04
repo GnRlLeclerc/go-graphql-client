@@ -4,60 +4,28 @@ package graphql
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/cookiejar"
 )
 
-type ContentType string
-
-const (
-	ContentTypeJSON      = "application/json"
-	ContentTypeMultipart = "multipart/form-data"
-)
-
 type Client struct {
-	endpoint    string
-	contentType ContentType
-	httpClient  *http.Client
+	endpoint   string
+	httpClient *http.Client
 }
 
 // NewClient creates a new client with the given endpoint and options.
-func NewClient(endpoint string, opts ...ClientOption) *Client {
+func NewClient(endpoint string) *Client {
 	// Create default client
 	client := &Client{
-		endpoint:    endpoint,
-		contentType: ContentTypeJSON,
-		httpClient:  http.DefaultClient,
+		endpoint:   endpoint,
+		httpClient: http.DefaultClient,
 	}
 
-	// Apply options
-	for _, opt := range opts {
-		opt(client)
-	}
+	// Add cookies support
+	jar, _ := cookiejar.New(nil)
+	client.httpClient.Jar = jar
 
 	return client
-}
-
-// ***************************************************** //
-//                 CONFIGURATION OPTIONS                 //
-// ***************************************************** //
-
-// ClientOption is a function that updates a client
-type ClientOption func(*Client)
-
-// UseMultipart sets the client to use multipart content type instead of the default JSON one.
-func UseMultipart() ClientOption {
-	return func(c *Client) {
-		c.contentType = ContentTypeMultipart
-	}
-}
-
-func UseCookies() ClientOption {
-	jar, _ := cookiejar.New(nil)
-	return func(c *Client) {
-		c.httpClient.Jar = jar
-	}
 }
 
 // ***************************************************** //
@@ -98,17 +66,13 @@ func (c *Client) Run(ctx context.Context, request *Request, response interface{}
 	default:
 	}
 
-	if len(request.files) > 0 && c.contentType != ContentTypeMultipart {
-		return fmt.Errorf("Cannot process file uploads with content type %s. Use a multipart content type client instead.", c.contentType)
-	}
-
 	// Create the request
 	var httpRequest *http.Request
 	var err error
-	switch c.contentType {
-	case ContentTypeJSON:
-		httpRequest, err = c.requestJson(request)
-	case ContentTypeMultipart:
+	if len(request.files) > 0 {
+		httpRequest, err = c.requestMultipart(request)
+	} else {
+		// DEBUG
 		httpRequest, err = c.requestMultipart(request)
 	}
 

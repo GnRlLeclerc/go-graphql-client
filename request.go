@@ -12,15 +12,14 @@ import (
 type Request struct {
 	query     string
 	variables map[string]interface{}
-	files     []file // File uploads (multipart only)
+	files     map[string][]file
 	header    http.Header
 }
 
 // file represents a file to be uploaded
 type file struct {
-	fieldname string
-	filename  string
-	reader    io.Reader
+	filename string
+	reader   io.Reader
 }
 
 // NewRequest creates a new GraphQL request with the given query
@@ -28,6 +27,7 @@ func NewRequest(query string) *Request {
 	return &Request{
 		query:     query,
 		variables: make(map[string]interface{}),
+		files:     make(map[string][]file),
 		header:    make(http.Header),
 	}
 }
@@ -47,9 +47,15 @@ func (r *Request) Header(key, value string) {
 }
 
 // File sets a file upload for the request.
-// A request with files should be sent using a multipart content type.
+// Requests containing files will be sent as multipart/form-data.
 func (r *Request) File(fieldname, filename string, reader io.Reader) {
-	r.files = append(r.files, file{fieldname, filename, reader})
+	_, exists := r.files[fieldname]
+
+	if exists {
+		r.files[fieldname] = append(r.files[fieldname], file{filename, reader})
+	} else {
+		r.files[fieldname] = []file{file{filename, reader}}
+	}
 }
 
 // toJSON converts the request to a JSON body containing the query and variables.
