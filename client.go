@@ -72,8 +72,7 @@ func (c *Client) Run(ctx context.Context, request *Request, response interface{}
 	if len(request.files) > 0 {
 		httpRequest, err = c.requestMultipart(request)
 	} else {
-		// DEBUG
-		httpRequest, err = c.requestMultipart(request)
+		httpRequest, err = c.requestJson(request)
 	}
 
 	if err != nil {
