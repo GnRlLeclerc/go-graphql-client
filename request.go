@@ -3,6 +3,7 @@
 package graphql
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 )
@@ -49,4 +50,15 @@ func (r *Request) Header(key, value string) {
 // A request with files should be sent using a multipart content type.
 func (r *Request) File(fieldname, filename string, reader io.Reader) {
 	r.files = append(r.files, file{fieldname, filename, reader})
+}
+
+// toJSON converts the request to a JSON body containing the query and variables.
+func (r *Request) toJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Query     string                 `json:"query"`
+		Variables map[string]interface{} `json:"variables"`
+	}{
+		Query:     r.query,
+		Variables: r.variables,
+	})
 }

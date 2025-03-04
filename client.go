@@ -102,7 +102,38 @@ func (c *Client) Run(ctx context.Context, request *Request, response interface{}
 		return fmt.Errorf("Cannot process file uploads with content type %s. Use a multipart content type client instead.", c.contentType)
 	}
 
-	// TODO: handle both content types
+	// Create the request
+	var httpRequest *http.Request
+	var err error
+	switch c.contentType {
+	case ContentTypeJSON:
+		httpRequest, err = c.requestJson(request)
+	case ContentTypeMultipart:
+		httpRequest, err = c.requestMultipart(request)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	// Do the request
+	httpRequest = httpRequest.WithContext(ctx)
+	res, err := c.httpClient.Do(httpRequest)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	// Process the body
+	data, err := unmarshal(res.Body, response)
+
+	if err != nil {
+		return err
+	}
+
+	if len(data.Errors) > 0 {
+		return data.Errors[0]
+	}
 
 	return nil
 }
