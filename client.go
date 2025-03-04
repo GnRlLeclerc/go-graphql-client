@@ -6,6 +6,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 )
 
 type Client struct {
@@ -40,8 +41,9 @@ func (c *Client) ClearCookies() {
 }
 
 // AddCookie adds a simple cookie to the client's cookie jar.
-func (c *Client) AddCookie(name, value string) {
-	c.httpClient.Jar.SetCookies(nil, []*http.Cookie{
+func (c *Client) AddCookie(endpoint, name, value string) {
+	endpointUrl, _ := url.Parse(endpoint)
+	c.httpClient.Jar.SetCookies(endpointUrl, []*http.Cookie{
 		{
 			Name:  name,
 			Value: value,
