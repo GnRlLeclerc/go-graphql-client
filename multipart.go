@@ -7,8 +7,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
+	"path/filepath"
 	"strconv"
 )
 
@@ -53,8 +56,19 @@ func (c *Client) requestMultipart(request *Request) (*http.Request, error) {
 	filecount = 0
 	for _, files := range request.files {
 		for _, file := range files {
-			w, err := writer.CreateFormFile(strconv.Itoa(filecount), file.filename)
+			// Get the file mime content type
+			ext := filepath.Ext(file.filename)
+			contentType := mime.TypeByExtension(ext)
+			if contentType == "" {
+				contentType = "application/octet-stream" // Fallback for unknown types
+			}
 
+			// File multipart header
+			partHeader := make(textproto.MIMEHeader)
+			partHeader.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%d"; filename="%s"`, filecount, file.filename))
+			partHeader.Set("Content-Type", contentType)
+
+			w, err := writer.CreatePart(partHeader)
 			if err != nil {
 				return nil, fmt.Errorf("Error creating form file: %v", err)
 			}
@@ -69,6 +83,9 @@ func (c *Client) requestMultipart(request *Request) (*http.Request, error) {
 			filecount += 1
 		}
 	}
+
+	// Write the closing boundary
+	writer.Close()
 
 	// Form the http request
 	r, err := http.NewRequest(http.MethodPost, c.endpoint, &requestBody)

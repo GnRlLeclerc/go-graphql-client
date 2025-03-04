@@ -35,20 +35,12 @@ func NewClient(endpoint string) *Client {
 // ClearCookies clears all cookies from the client's cookie jar.
 // This method panics on clients that have no cookie jar.
 func (c *Client) ClearCookies() {
-	if c.httpClient.Jar == nil {
-		panic("Called ClearCookies on a client that does not have a cookie jar")
-	}
-
 	jar, _ := cookiejar.New(nil)
 	c.httpClient.Jar = jar
 }
 
 // AddCookie adds a simple cookie to the client's cookie jar.
 func (c *Client) AddCookie(name, value string) {
-	if c.httpClient.Jar == nil {
-		panic("Called AddCookie on a client that does not have a cookie jar")
-	}
-
 	c.httpClient.Jar.SetCookies(nil, []*http.Cookie{
 		{
 			Name:  name,
